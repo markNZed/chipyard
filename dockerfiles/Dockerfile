@@ -20,7 +20,12 @@ RUN apt-get update && \
     keyboard-configuration \
     console-setup \
     bc \
-    unzip
+    unzip \
+    file \
+    cpio \
+    kmod \
+    vim \
+    screen
 
 WORKDIR /root
 
@@ -38,27 +43,34 @@ FROM base as base-with-tools
 
 SHELL ["/bin/bash", "-cl"]
 
+ENV PIP_ROOT_USER_ACTION=ignore
+
 # Initialize repo
 RUN cd chipyard && \
         export MAKEFLAGS=-"j $(nproc)" && \
         conda activate base && \
-        ./setup.sh --env-name chipyard --skip-validate
+        ./build-setup.sh -f -s 6 -s 7 -s 8 -s 9
+
+#RUN cd chipyard && \
+#        ./setup.sh --env-name chipyard --skip-validate
 
 SHELL ["/opt/conda/bin/conda", "run", "-n", "chipyard", "/bin/bash", "-cl"]
 
 # Set up FireMarshal. Building and cleaning br-base.json builds the underlying
 # buildroot image (which takes a long time) but doesn't keep all the br-base
 # stuff around (since that's faster to rebuild).
-RUN cd chipyard && \
-        source env.sh && \
-        cd software/firemarshal && \
-        ./init-submodules.sh && \
-        pip3 install -r python-requirements.txt && \
-        ./marshal build br-base.json && \
-        ./marshal clean br-base.json
+# FireMarshal is a workload generation tool for RISC-V based systems. 
+# It currently only supports the FireSim FPGA-accelerated simulation platform.
+#RUN cd chipyard && \
+#        source env.sh && \
+#        cd software/firemarshal && \
+#        ./init-submodules.sh && \
+#        pip3 install -r python-requirements.txt && \
+#        ./marshal build br-base.json && \
+#        ./marshal clean br-base.json
 
 # Run script to set environment variables on entry
-ENTRYPOINT ["chipyard/scripts/entrypoint.sh"]
+ENTRYPOINT ["bash", "-i", "chipyard/scripts/entrypoint.sh"]
 
 # END IMAGE CUSTOMIZATIONS
 
